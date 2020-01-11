@@ -17,11 +17,13 @@ public class MetadataManager {
 	private long[] endRangeArr;
 	private final int maxPercentage = 100;
 	private int percentageCounter = 0;
+	private List<Long> startRangeList;
 
 	public MetadataManager(String url) throws IOException {
 		this.fileName = createMetadataFileName(url);
 		this.fileSize = getFileSize(url);
 		this.file = createMetadataFile();
+		this.startRangeList = createStartRangeList();
 	}
 
 	public String getFileName() {
@@ -35,6 +37,10 @@ public class MetadataManager {
 	public File getFile() {
 		return this.file;
 	}
+	
+	public List<Long> getStartRangeList() {
+		return this.startRangeList;
+	}
 
 	/**
 	 * This function creates the metadata file name, using the given URL and the
@@ -44,10 +50,9 @@ public class MetadataManager {
 	 */
 	private static String createMetadataFileName(String url) throws MalformedURLException {
 		int fileNameIndex = url.lastIndexOf('/');
-
 		// check if this is a legal address
 		if (fileNameIndex > -1 && fileNameIndex < url.length() - 1) {
-			String urlFileName = (new URL(url)).getFile();
+			String urlFileName = url.substring(fileNameIndex + 1, url.length());
 			return urlFileName + ".metadata";
 		} else {
 			return null;
@@ -78,8 +83,10 @@ public class MetadataManager {
 	 */
 	private File createMetadataFile() {
 
-		File metadataFile = new File(this.fileName);// this file had '.metadata' extension
+		File metadataFile = new File(this.fileName);// this file has '.metadata' extension
 		Path path = metadataFile.toPath();
+		System.out.println(path);
+		System.out.println(this.fileName);
 		Path resolvedPath = path.resolve(".temp");
 
 		// delete all '.temp' files. -> These are files that were not converted
@@ -88,7 +95,7 @@ public class MetadataManager {
 			Files.deleteIfExists(resolvedPath);
 			if (!metadataFile.exists()) {
 				boolean isCreated = metadataFile.createNewFile();
-
+				
 				// initialize metadata file
 				if (isCreated) {
 					initMetadataFile(metadataFile);
@@ -97,9 +104,10 @@ public class MetadataManager {
 					System.exit(1);
 				}
 			}
+			System.out.println("Ani po");
 			return metadataFile;
 		} catch (IOException e) {
-			System.err.println("OOPS! Something went wrong!\n" + e);
+			System.err.println("OOPS! Something went wrongaa!\n" + e);
 			System.exit(1);
 		}
 		return null;
@@ -198,14 +206,17 @@ public class MetadataManager {
 	 * This function create start range list.
 	 * 
 	 */
-	private List<Long> createStartRangeList() {
+	protected List<Long> createStartRangeList() {
 		List<Long> StartRangeList = new ArrayList<>();
 		try {
 			RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
 			String start;
-			
+			int i = 0;
+			System.out.println("Are you null?? " + raf.readLine());
 			while ((start = raf.readLine()) != null) {
+				System.out.println(i+ ". " + Long.parseLong(start));
 				StartRangeList.add(Long.parseLong(start));
+				i++;
 			}
 			raf.close();
 			return StartRangeList;

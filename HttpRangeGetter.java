@@ -81,7 +81,7 @@ public class HttpRangeGetter implements Runnable {
 			this.rangeDownloader();
 		}
 		catch(Exception e) {
-			System.err.println("OOPS! Something went wrong.\n" + e);
+			System.err.println("OOPS! Something went wrong!!!!! ho no.\n" + e);
 			System.exit(1);
 		}		
 	}

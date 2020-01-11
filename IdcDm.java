@@ -26,7 +26,9 @@ public class IdcDm {
 		if (numOfThreads > 1) {
 			System.out.println(" using " + numOfThreads + " connections...");
 		}
+		System.out.println("before the big storm");
 		DownloadManager.DownloadURL(url, numOfThreads);
+		System.out.println("after the big storm");
 	}
 }
 
