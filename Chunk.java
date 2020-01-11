@@ -27,7 +27,7 @@ public class Chunk {
     	return this.offset;
     }
     
-    public long getRange() {
+    public long getStartRange() {
     	return this.startRange;
     }
 }

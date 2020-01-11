@@ -5,6 +5,7 @@ import java.net.*;
 import java.nio.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 public class MetadataManager {
@@ -114,21 +115,20 @@ public class MetadataManager {
 			RandomAccessFile raf = new RandomAccessFile(metadataFile, "rw");
 			StringBuilder rangeSB = new StringBuilder();
 
-			Long percentage = this.fileSize / maxPercentage;
-			Long start;
+			long percentage = this.fileSize / maxPercentage;
+			long start;
 			for (int i = 0; i < maxPercentage; i++) {
 				start = percentage * i;
 				rangeSB.append(Long.toString(start) + "\n");
 				this.startRangeArr[i] = start;
-				
-				if(i != maxPercentage - 1) {
-					this.endRangeArr[i]= start + percentage - 1;
-				}
-				else {
-					this.endRangeArr[i]= this.fileSize;
+
+				if (i != maxPercentage - 1) {
+					this.endRangeArr[i] = start + percentage - 1;
+				} else {
+					this.endRangeArr[i] = this.fileSize;
 				}
 			}
-			
+
 			raf.writeBytes(rangeSB.toString());
 			raf.close();
 
@@ -138,6 +138,125 @@ public class MetadataManager {
 		}
 	}
 
+	/**
+	 * This function updates the start array and end array, according to the data we
+	 * downloaded. It also updates the download process. The function also pronts
+	 * download progress and success.
+	 * 
+	 * @param chunk:Chunk
+	 */
+	protected void updateDownloadedRanges(Chunk chunk) {
+		int startChunkIndex = -1;
+		for (int i = 0; i < this.startRangeArr.length; i++) {
+			if (this.startRangeArr[i] == chunk.getStartRange()) {
+				startChunkIndex = i;
+				break;
+			}
+		}
+		if (startChunkIndex == -1) {
+			System.err.println("OOPS! Something terrible happend. We can't complete your downlad.\nPlease try again.");
+		}
+		long prevRangeStart = this.startRangeArr[startChunkIndex];
+		long currRangeStart = prevRangeStart + chunk.getSize();
+
+		// check if we read all the data in this range
+		if (currRangeStart >= this.endRangeArr[startChunkIndex]) {
+			this.percentageCounter++;
+			System.out.println("Downloaded " + this.percentageCounter + "%");
+		}
+
+		if (isDownloadCompleted()) {
+			System.out.println("Download succeeded!");
+			this.deleteMetadata();
+		} else {
+			this.startRangeArr[startChunkIndex] = currRangeStart;
+			updateMetadata();
+		}
+	}
+
+	/**
+	 * This function deletes the metadata file.
+	 * 
+	 */
+	private void deleteMetadata() {
+		try {
+			if(!Files.deleteIfExists(this.file.toPath())) {
+				System.err.println(
+						"OOPS! Something went wrong with deleting your old metadata file.\nPlease try again later.");
+				System.exit(1);
+			}
+		} catch (Exception e) {
+			System.err.println(
+					"OOPS! Something went wrong with deleting your old metadata file.\nPlease try again later.");
+			System.exit(1);
+		}
+
+	}
+
+	/**
+	 * This function updates the metadata file. First, it'll try to create a new
+	 * metadata file, then it will wrap the file with a random access file, and then
+	 * read the start range array and append the range to a string builder. The
+	 * function then will check id we read all the data in this range. Last, the
+	 * function will write the info to the random access file, and rename the temp
+	 * metadata file, as required.
+	 * 
+	 */
+	private void updateMetadata() {
+		try {
+			File tempMetadataFile = new File(this.fileName + ".temp");
+
+			if (!tempMetadataFile.exists()) {
+				// if the file doesn't exists, we will create it
+				if (!tempMetadataFile.createNewFile()) {
+					System.err.println(
+							"OOPS! Something went wrong with creating temp metadata file.\nPlease try again later.");
+					System.exit(1);
+				}
+			}
+
+			RandomAccessFile raf = new RandomAccessFile(tempMetadataFile, "rw");
+			StringBuilder rangeSB = new StringBuilder();
+
+			long startRange;
+			// read the start range array
+			for (int i = 0; i < startRangeArr.length; i++) {
+				startRange = this.startRangeArr[i];
+
+				// check if we read all the data in this range
+				if (startRange < this.endRangeArr[i]) {
+					rangeSB.append(Long.toString(startRange) + "\n");
+				}
+			}
+
+			raf.writeBytes(rangeSB.toString());
+			raf.close();
+			renameTempMetadataFile(tempMetadataFile);
+		} catch (Exception e) {
+			System.err.println(e);
+			System.exit(1);
+		}
+	}
+
+	/**
+	 * This function renames the metadata file. It will only be called if a
+	 * successful write of the chunk was performed.
+	 * 
+	 * @param file:File
+	 */
+	private void renameTempMetadataFile(File file) {
+		try {
+			Files.move(file.toPath(), this.file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		} catch (Exception e) {
+			System.err.println("OOPS! Something went wrong with renaming temp metadata file.\nPlease try again later.");
+		}
+	}
+
+	/**
+	 * This function checks if the download proccess is completed. If the download
+	 * was completed, the function will return true.
+	 * 
+	 */
 	protected boolean isDownloadCompleted() {
 		return this.percentageCounter == this.maxPercentage;
 	}
