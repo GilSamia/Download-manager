@@ -38,8 +38,6 @@ public class HttpRangeGetter implements Runnable {
 	/**
 	 * Determine which range of the given file to download
 	 * 
-	 * @param adress
-	 * @param localFileName
 	 */
 	public void rangeDownloader() {
 		try {
