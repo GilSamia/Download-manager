@@ -26,9 +26,8 @@ public class FileWriter implements Runnable {
 				Chunk chunk = blockingQueue.take();
 				writer.seek(chunk.getOffset());
 				writer.write(chunk.getData(), 0, chunk.getSize());
-				this.metadata.addDataToDynamicMetadata(chunk);
+				this.metadata.updateDownloadedRanges(chunk);
 				writer.close();
-
 			}
 		} catch (IOException e) {
 			System.err.println(
@@ -43,6 +42,5 @@ public class FileWriter implements Runnable {
 	@Override
 	public void run() {
 		this.writeChunks();
-
 	}
 }
