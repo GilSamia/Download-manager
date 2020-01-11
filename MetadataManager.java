@@ -11,6 +11,8 @@ public class MetadataManager {
 	private final String fileName;
 	private long fileSize;
 	private File file;
+	private long[] startRangeArr;
+	private long[] endRangeArr;
 	private final int maxPercentage = 100;
 	private int percentageCounter = 0;
 
@@ -102,7 +104,8 @@ public class MetadataManager {
 	}
 
 	/**
-	 * This is a helper function that initialize metadata file.
+	 * This is a helper function that initialize metadata file. The function also
+	 * populate the start range array with values.
 	 * 
 	 * @param metadataFile: File
 	 */
@@ -113,18 +116,19 @@ public class MetadataManager {
 
 			Long percentage = this.fileSize / maxPercentage;
 			Long start;
-			Long end;
-
 			for (int i = 0; i < maxPercentage; i++) {
 				start = percentage * i;
-				end = start + percentage - 1;
-				if (i == maxPercentage - 1 && end != this.fileSize) {
-					end = this.fileSize;
+				rangeSB.append(Long.toString(start) + "\n");
+				this.startRangeArr[i] = start;
+				
+				if(i != maxPercentage - 1) {
+					this.endRangeArr[i]= start + percentage - 1;
 				}
-				String currentRange = Long.toString(start) + ',' + Long.toString(end);
-				rangeSB.append(currentRange + "\n");
-			} // for loop
-
+				else {
+					this.endRangeArr[i]= this.fileSize;
+				}
+			}
+			
 			raf.writeBytes(rangeSB.toString());
 			raf.close();
 
@@ -133,7 +137,7 @@ public class MetadataManager {
 			System.exit(1);
 		}
 	}
-	
+
 	protected boolean isDownloadCompleted() {
 		return this.percentageCounter == this.maxPercentage;
 	}

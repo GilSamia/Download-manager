@@ -1,31 +1,36 @@
 package lab;
 
-import java.io.File;
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.BlockingQueue;
 
-/**
- * This class manages the downloading process of a single file
- */
-public class HttpRangeGetter {
-	static int chunkSize = 1024;
-	static int bufferBegining = 0;
-	
+public class HttpRangeGetter implements Runnable {
+	private static final int chunkSize = 1024;
+	private final URL url;
+	private final Long start; // The begining of this range
+	private final Long end; // The ending of this range
+	private final BlockingQueue<Chunk> blockingQueue;
+
+	public HttpRangeGetter(String i_Url, Long i_Start, Long i_End, BlockingQueue i_BlockingQueue) {
+		this.url = urlBuilder(i_Url);
+		this.start = i_Start;
+		this.end = i_End;
+		this.blockingQueue = i_BlockingQueue;
+	}
+
 	/**
-	 * Determines the download file given from the URL
+	 * build a URL address from a String
 	 * 
-	 * @param address
+	 * @param i_Url: String
 	 */
-	public static String determineFile(String address) throws MalformedURLException {
-		int fileNameIndex = address.lastIndexOf('/');
-		
-		//check if this is a legal address
-		if (fileNameIndex > -1 && fileNameIndex < address.length() - 1) 
-		{
-			return (new URL(address)).getFile();
-		} 
-		else 
-		{
+	private URL urlBuilder(String i_Url) {
+		try {
+			return new URL(i_Url);
+		} catch (IOException e) {
+			System.err.println("OOPS! Could not convert given address to a legal URL address.\n" + e);
+			System.exit(1);
 			return null;
 		}
 	}
@@ -35,50 +40,51 @@ public class HttpRangeGetter {
 	 * 
 	 * @param adress
 	 * @param localFileName
-	 */	
-	public static void download(String address, String localFileName) {
-		InputStream input = null;
-		OutputStream output = null;
-		URLConnection connection = null;
-
+	 */
+	public void rangeDownloader() {
 		try {
-			URL url = new URL(address);
-			connection = url.openConnection();
-			input = connection.getInputStream();
-			output = new BufferedOutputStream(new FileOutputStream(localFileName));
+			HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
 
-			int numOfBytesRead;
-			byte[] buffer = new byte[chunkSize];
-			long numWritten = 0;
-			
-			//While the end of the stream hasn't been reached
-			while ((numOfBytesRead = input.read(buffer)) != -1) 
-			{
-				output.write(buffer, bufferBegining, numOfBytesRead);
-				numWritten += numOfBytesRead;
-			}
+			// TODO: Do we need to get 201, 202..??
+			if (connection.getResponseCode() == 200) {
 
-			//System.out.println(localFileName + "\t" + numWritten);
-		}
-		catch (Exception e) 
-		{
-			System.err.println("OOPS! Something went wrong.\n" + e); 
-		} 
-		finally 
-		{
-			try {
-				if (input != null) {
-					input.close();
+				InputStream inputStream = connection.getInputStream();
+
+				long bytesRead = 0;
+				long bytesToRead = this.end - this.start + 1;
+
+				// While I can read
+				while (bytesRead < bytesToRead) {
+					byte[] chunkData = new byte[chunkSize];
+					Long seek = this.start + bytesRead;
+					int sizeRead = inputStream.read(chunkData); // The size of what we read now in bytes
+
+					//End of the file
+					if (sizeRead == -1)
+						break;
+
+					bytesRead += sizeRead;
+
+					Chunk chunk = new Chunk(chunkData, sizeRead, seek, this.start);
+					this.blockingQueue.put(chunk);
 				}
-				if (output != null) {
-					output.close();
-				}
-			} 
-			catch (IOException e) 
-			{
-				System.err.println("OOPS! Something went wrong with closing the stream.\n" + e); 
-
+				
+			inputStream.close();
+			connection.disconnect();
 			}
+		} catch (Exception e) {
+			System.err.println(e);
 		}
+	}
+
+	@Override
+	public void run() {
+		try {
+			this.rangeDownloader();
+		}
+		catch(Exception e) {
+			System.err.println("OOPS! Something went wrong.\n" + e);
+			System.exit(1);
+		}		
 	}
 }

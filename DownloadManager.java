@@ -10,7 +10,7 @@ public class DownloadManager {
 			String address = args[i];
 			String url = HttpRangeGetter.determineFile(address);
 			if (url != null) {
-				HttpRangeGetter.download(address, url);				
+				HttpRangeGetter.rangeDownloader(address, url);				
 			}
 			else {
 				System.err.println("Could not get local file name: " + address);
