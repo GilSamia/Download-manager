@@ -6,6 +6,7 @@ import java.nio.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MetadataManager {
@@ -180,7 +181,7 @@ public class MetadataManager {
 	 */
 	private void deleteMetadata() {
 		try {
-			if(!Files.deleteIfExists(this.file.toPath())) {
+			if (!Files.deleteIfExists(this.file.toPath())) {
 				System.err.println(
 						"OOPS! Something went wrong with deleting your old metadata file.\nPlease try again later.");
 				System.exit(1);
@@ -191,6 +192,28 @@ public class MetadataManager {
 			System.exit(1);
 		}
 
+	}
+
+	/**
+	 * This function create start range list.
+	 * 
+	 */
+	private List<Long> createStartRangeList() {
+		List<Long> StartRangeList = new ArrayList<>();
+		try {
+			RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
+			String start;
+			
+			while ((start = raf.readLine()) != null) {
+				StartRangeList.add(Long.parseLong(start));
+			}
+			raf.close();
+			return StartRangeList;
+		} catch (Exception e) {
+			System.err.println("OOPS! Something went wrong while creating start ranges list.\nPlease try again again later.");
+			System.exit(1);
+			return null;
+		}
 	}
 
 	/**

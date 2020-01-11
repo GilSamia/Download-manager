@@ -1,20 +1,37 @@
 package lab;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.concurrent.*;
 
 public class DownloadManager {
 
-	public static void main(String[] args) throws MalformedURLException {
+	/**
+	 *
+	 * @param url
+	 * @param numOfThreads
+	 */
+	protected static void DownloadURL(String i_Url, int numOfThreads) {
+
+		BlockingQueue<Chunk> blockingQueue = new LinkedBlockingQueue<>();
 		
-		for (int i = 0; i < args.length; i++) {
-			String address = args[i];
-			String url = HttpRangeGetter.determineFile(address);
-			if (url != null) {
-				HttpRangeGetter.rangeDownloader(address, url);				
-			}
-			else {
-				System.err.println("Could not get local file name: " + address);
-			}
-		}
+		try {
+			MetadataManager metadataManager = new MetadataManager(i_Url);
+			FileWriter fileWriter = new FileWriter(metadataManager, blockingQueue);
+			Thread threadFileWriter = new Thread(fileWriter);
+	        ExecutorService executorService = Executors.newFixedThreadPool(numOfThreads);
+		
+	        try {
+	        	threadFileWriter.start();
+	        	for() {
+	        		
+	        	}
+	        }
+		} 
+		catch (IOException e) {
+			System.err.println("OOPS! Something went very wrong.\nPlease try again later.\n" + e);
+			e.printStackTrace();
+		}		
 	}
+
 }

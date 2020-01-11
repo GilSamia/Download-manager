@@ -21,27 +21,12 @@ public class IdcDm {
 		if (args.length == 2) {
 			numOfThreads = Integer.parseInt(args[1]);
 		}
-		System.out.printf("Downloading");
+		System.out.println("Downloading...");
 
 		if (numOfThreads > 1) {
-			System.out.printf(" using " + numOfThreads + " connections");
+			System.out.println(" using " + numOfThreads + " connections...");
 		}
-		System.out.println("...");
-
-		DownloadURL(url, numOfThreads);
-	}
-
-	/**
-	 *
-	 * @param url
-	 * @param numOfThreads
-	 */
-	private static void DownloadURL(String url, int numOfThreads) {
-		
-		BlockingQueue<Chunk> blockingQueue = new LinkedBlockingQueue<>();
-		
-	
-	
-	
+		DownloadManager.DownloadURL(url, numOfThreads);
 	}
 }
+
