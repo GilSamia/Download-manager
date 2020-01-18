@@ -28,6 +28,7 @@ public class DownloadManager {
      *
      */
     protected void startDownload() {
+    	System.out.println("File size: " + this.fileSize);
 
         int threshold = 5 * this.chunkSize; //TODO: explain why we chose 5?? is it enough?
         int optimalNumOfThreads = (int) this.fileSize / threshold;
@@ -58,7 +59,7 @@ public class DownloadManager {
             }
 
             URL url = urlBuilder(this.stringUrl);
-            Runnable runnable = new HttpRangeGetter(url, startRange, endRange , blockingQueue);
+            Runnable runnable = new HttpRangeGetter(url, startRange, endRange , blockingQueue, metadataManager);
             executorService.execute(runnable);
         }
 

@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.nio.file.*;
 
-public class MetadataManager {
+public class MetadataManager implements Serializable {
     private final String fileName;
-    private String destPath;
+    private static String destPath;
     private final int numOfRanges;
     private List<Long> startRangeList;
     private int rangeCounter;
@@ -22,25 +22,13 @@ public class MetadataManager {
 
     public MetadataManager(int i_NumOfRanges, String i_FileName) {
         this.fileName = i_FileName + ".metadata";
-        this.destPath = createMetadataPath(this.fileName);
+        MetadataManager.destPath = createMetadataPath(this.fileName);
 //        this.file = createMetadataFile();
         this.startRangeList = createStartRangeList(i_NumOfRanges);
         this.numOfRanges = i_NumOfRanges;
         this.rangeCounter = 0;
     }
 
-//    public String getFileName() {
-//        return this.fileName;
-//    }
-//
-//    public long getFileSize() {
-//        return this.fileSize;
-//    }
-//
-//    public File getFile() {
-//        return this.file;
-//    }
-//
     public List<Long> getStartRangeList() {
         return this.startRangeList;
     }
@@ -53,6 +41,9 @@ public class MetadataManager {
         return this.numOfRanges;
     }
 
+    public static String getDestPath(){
+    	return MetadataManager.destPath;
+    }
 
 
     /**
@@ -67,7 +58,6 @@ public class MetadataManager {
             long start = (long) i * DownloadManager.chunkSize;
             rangeList.add(start);
         }
-
         return rangeList;
     }
 
@@ -78,7 +68,7 @@ public class MetadataManager {
      * @return
      */
     private static String createMetadataPath(String fileName) {
-        String path = "downloads" + System.getProperty("file.separator") + fileName;
+        String path = fileName;
         return path;
     }
 
@@ -89,34 +79,57 @@ public class MetadataManager {
      * @param i_MetadataFileName
      * @return
      */
-    protected static MetadataManager getMetadata(int i_NumOfRanges, String i_MetadataFileName) {
+    protected static  MetadataManager getMetadata(int i_NumOfRanges, String i_MetadataFileName) {
         MetadataManager metadata;
-        String path = createMetadataPath(i_MetadataFileName);
-        File metadataFile = new File(path).getAbsoluteFile();
+        String path = createMetadataPath(i_MetadataFileName) + ".metadata";
+        System.out.println("Before creating the file");
+        File metadataFile = new File(i_MetadataFileName + ".metadata");
 
         // check if we need to create a new metadata object
         if (!metadataFile.exists()) {
+        	System.out.println("In the if");
+
             metadata = new MetadataManager(i_NumOfRanges, i_MetadataFileName);
-        } else {
-            //the metadata object exists so we just need to read it
+			try {
+				metadataFile.createNewFile();
+			} catch (IOException e) {
+				System.err.println("OOPS! Could not create metadata file" + e);
+			}
+            
+            String tempPath = getDestPath() + ".temp";
+        	File tempFile = new File(tempPath);
+			try {
+				tempFile.createNewFile();
+			} catch (IOException e) {
+				System.err.println("OOPS! Could not create metadata TEMP file" + e);
+			}
+        } 
+        
+        //the metadata object exists so we just need to read it
+        else {
+        	System.out.println("In the else");
             metadata = readMetadata(path);
         }
+        System.out.println("After creating the file");
         return metadata;
-
     }
 
-
-    /**
+     /**
      *
      * @param i_Path
      * @return the saved metadata object.
      */
     private static MetadataManager readMetadata(String i_Path) {
         try {
+        	System.out.println("Read metadata file method");
             MetadataManager metadata;
             FileInputStream fileInputStream = new FileInputStream(i_Path);
             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+            System.out.println("the stream was created");
+            
             metadata = (MetadataManager) objectInputStream.readObject();
+            System.out.println("Read!!!! metadata: " + metadata);
+            objectInputStream.close();
             return metadata;
         } catch (Exception e) {
             System.err.println(e);
@@ -131,16 +144,17 @@ public class MetadataManager {
      */
     private void writeToMetadata() {
         String tempPath = this.destPath + ".temp";
-        try {
+        System.out.println("tempPath: " + tempPath);
+        try {        	
             FileOutputStream fileOutputStream = new FileOutputStream(tempPath);
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
             objectOutputStream.writeObject(this);
+            System.out.println("after writing the metadata");
             renameTempMetadataFile(tempPath);
             this.rangeCounter++;
-
-
+            System.out.println("after renaming the metadata, rangeConter = " + this.rangeCounter);
         } catch (Exception e) {
-            System.err.println(e);
+            System.err.println("OOPS! Something went wrong with creating temp file. Please try again later." + e);
             System.exit(1);
         }
 
@@ -154,11 +168,11 @@ public class MetadataManager {
     private void renameTempMetadataFile(String i_Path) {
         try {
             File tempFile = new File(i_Path);
-            File curMetadataFile = new File(this.destPath).getAbsoluteFile();
-
-            Files.move(tempFile.toPath(), curMetadataFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Path in the renaming mathod i_Path: " + i_Path);
+            File curMetadataFile = new File(MetadataManager.destPath);
+            Files.move(Paths.get(tempFile.getAbsolutePath()), Paths.get(curMetadataFile.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception e) {
-            System.err.println("OOPS! Something went wrong with renaming temp metadata file.\nPlease try again later.");
+            System.err.println("OOPS! Something went wrong with renaming temp metadata file.\nPlease try again later." + e);
         }
     }
 
@@ -170,6 +184,7 @@ public class MetadataManager {
      */
     protected void deleteMetadata() {
         try {
+        	System.out.println("in delete");
             File metadataFile = new File(this.destPath);
             metadataFile.delete();
         } catch (Exception e) {

@@ -7,6 +7,7 @@ package lab;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
 public class HttpRangeGetter implements Runnable {
@@ -15,44 +16,59 @@ public class HttpRangeGetter implements Runnable {
     private final Long start; // The beginning of this range
     private final Long end; // The ending of this range
     private final BlockingQueue<Chunk> blockingQueue;
+    private MetadataManager metadataManager;
 
-    public HttpRangeGetter(URL i_Url, Long i_Start, Long i_End, BlockingQueue i_BlockingQueue){
+    public HttpRangeGetter(URL i_Url, Long i_Start, Long i_End, BlockingQueue i_BlockingQueue, MetadataManager i_MetadataManager){
         this.url = i_Url;
         this.start = i_Start;
         this.end = i_End;
         this.blockingQueue = i_BlockingQueue;
+        this.metadataManager = i_MetadataManager;
+        
     }
 
     public void rangeDownloader() {
         try {
-            HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
+            System.out.println("Before the connection. end = " + this.end);
+
+        	HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
             connection.setRequestProperty("Range", "bytes=" + this.start + "-" + this.end);
             connection.connect();
 
             //TODO: check status 201 202...?
             int response = connection.getResponseCode();
-            if (response == 200) {
+            System.out.println("response : " + response);
+            if (response >= 200 && response < 300) {
 
                 InputStream inputStream = connection.getInputStream();
+        		List<Long> startRangeList = this.metadataManager.getStartRangeList();
+                
+        		for (int i = 0; i < startRangeList.size(); i++) {
 
-                long bytesRead = 0;
-                long bytesToRead = this.end - this.start + 1;
+        			long startRange = startRangeList.get(i);
+        			//if the given list ranges matches the thread range then read the file
+        			if (startRange <= this.end && startRange >= this.start) {
 
-                //while there are bytes left to read
-                while (bytesRead < bytesToRead) {
-                    byte [] chunkData = new byte[chunkSize];
-                    long seek = this.start + bytesRead;
-                    int sizeRead = inputStream.read(chunkData); //read the data to chunkData and returns the size of data in bytes.
+                        long bytesRead = 0;
+                        long bytesToRead = chunkSize;
 
-                    // this is the end of file
-                    if(sizeRead == -1) {
-                        break;
-                    }
-                    
-                    bytesRead += sizeRead;
-                    Chunk chunk = new Chunk(chunkData, sizeRead, seek, this.start);
-                    this.blockingQueue.put(chunk);
-                }
+        				//while there are bytes left to read                
+                        while (bytesRead < bytesToRead) {
+                            byte [] chunkData = new byte[chunkSize];
+                            long seek = this.start + bytesRead;
+                            int sizeRead = inputStream.read(chunkData); //read the data to chunkData and returns the size of data in bytes.
+
+                            // this is the end of file
+                            if(sizeRead == -1) {
+                                break;
+                            }
+                            
+                            bytesRead += sizeRead;
+                            Chunk chunk = new Chunk(chunkData, sizeRead, seek, this.start);
+                            this.blockingQueue.put(chunk);
+                        }
+        			}
+        		}
 
                 inputStream.close();
                 connection.disconnect();
@@ -67,8 +83,7 @@ public class HttpRangeGetter implements Runnable {
 
     @Override
     public void run(){
+    	this.rangeDownloader();
     	System.out.println("HTTP Range Getter Runner");
-    	
-
     }
 }
