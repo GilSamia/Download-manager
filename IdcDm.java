@@ -1,4 +1,4 @@
-package lab;
+package LabDm.src;
 
 public class IdcDm {
     /**
@@ -19,11 +19,10 @@ public class IdcDm {
         }
         System.out.println("Downloading...");
 
-
         if (numOfThreads > 1) {
             System.out.println(" using " + numOfThreads + " connections...");
         }
-
+        HttpRangeGetter.justACheck();
         DownloadManager downloadManager = new DownloadManager(url, numOfThreads); //TODO: send to manager url list
         downloadManager.startDownload();
     }

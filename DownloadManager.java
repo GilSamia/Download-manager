@@ -1,35 +1,31 @@
-package lab;
+package LabDm.src;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class DownloadManager {
-    private final String stringUrl;
-    private int numOfThreads;
-    public static final int chunkSize = 4096;  //1 chunk = 4KB
     private long fileSize;
+    public static final int chunkSize = 1024 * 4; //1 chunk = 4kb
+    private int numOfThreads;
+    private URL url;
     private String fileName;
-
+    private List<Range> threadRangeList;
 
     public DownloadManager(String i_Url, int i_NumOfThreads) {
-        this.stringUrl = i_Url;
-        this.fileSize = getFileSizeFromUrl(i_Url);
         this.numOfThreads = i_NumOfThreads;
-        this.fileName = createFileName(i_Url);
+        this.url = createUrl(i_Url);
+        this.fileSize = getFileSizeFromUrl();
+        this.fileName = getFileName(i_Url);
+        this.threadRangeList = divideFileToRanges();
     }
-
-
-    /**
-     *
-     */
+    
     protected void startDownload() {
-    	System.out.println("File size: " + this.fileSize);
-
         int threshold = 5 * this.chunkSize; //TODO: explain why we chose 5?? is it enough?
         int optimalNumOfThreads = (int) this.fileSize / threshold;
 
@@ -38,65 +34,68 @@ public class DownloadManager {
             this.numOfThreads = optimalNumOfThreads;
         }
 
-        int numOfRanges = (int) Math.ceil(this.fileSize / this.chunkSize);
-        MetadataManager metadataManager = MetadataManager.getMetadata(numOfRanges, this.fileName);
-        BlockingQueue<Chunk> blockingQueue = new LinkedBlockingQueue<>();
-        ExecutorService executorService = Executors.newFixedThreadPool(this.numOfThreads);
-        FileWriter fileWriter = new FileWriter(metadataManager, blockingQueue, this.fileName);
-        Thread threadFileWriter = new Thread(fileWriter);
-        threadFileWriter.start();
+        BlockingQueue<DataChunk> blockingQueue = new LinkedBlockingQueue<>();
 
-        long startRange;
-        long endRange;
-        long rangeSize = this.fileSize / this.numOfThreads;
-        for (int i = 0; i < this.numOfThreads; i++) {
-            startRange = i * rangeSize;
-            endRange = startRange + rangeSize;
+        // TODO: file size and num of threads might not be needed in metadata
+        Metadata metadata = Metadata.getMetadata(this.fileName, this.fileSize, this.numOfThreads, this.threadRangeList);
+        FileWriter fileWriter = new FileWriter(metadata, blockingQueue, this.fileSize);
+        Thread fileWriterThread = new Thread(fileWriter);
+        ExecutorService executor = Executors.newFixedThreadPool(this.numOfThreads);
 
-            //if the last thread has smaller range than the others
-            if (i == this.numOfThreads - 1) {
-                endRange = this.fileSize;
+        List<Range> metadataRangeList = metadata.getRangeList();
+
+        // if we are in resume, reCalc the ranges
+        if(metadata.isResumed) {
+            long totalFileSize = 0;
+            //calc the total size left to download
+            for (int i = 0; i < metadataRangeList.size(); i++) {
+                totalFileSize += metadataRangeList.get(i).getSize();
             }
 
-            URL url = urlBuilder(this.stringUrl);
-            Runnable runnable = new HttpRangeGetter(url, startRange, endRange , blockingQueue, metadataManager);
-            executorService.execute(runnable);
+            //size for each thread to download
+            long sizeForThread = totalFileSize / this.numOfThreads;
+            long curRangeSize;
+            List<Range> updatedRangeList = new ArrayList<>();
+
+            Range newRange;
+            Range metadataRange;
+            for (int i = 0; i < numOfThreads; i++) {
+                curRangeSize = sizeForThread;
+                for (int j = 0; j < metadataRangeList.size(); j++) {
+                    metadataRange = metadataRangeList.get(j);
+                    if(metadataRange.getSize() <= curRangeSize) {
+                        newRange = new Range(metadataRange.getStart(), metadataRange.getEnd());
+                        updatedRangeList.add(newRange);
+                    } else {
+                        newRange = new Range(metadataRange.getStart(), metadataRange.getStart() + curRangeSize);
+                    }
+                    curRangeSize -= newRange.getSize();
+                }
+            }
+            this.threadRangeList = updatedRangeList;
         }
 
-        executorService.shutdown();
+
+        fileWriterThread.start();
+        for (int i = 0; i < this.threadRangeList.size(); i++) {
+            Runnable httpRangeGetter = new HttpRangeGetter(this.url, this.threadRangeList.get(i), metadata, blockingQueue);
+            executor.execute(httpRangeGetter);
+        }
+        executor.shutdown();
     }
 
 
-    /**
-     *
-     * @param i_Url
-     * @return URL created by the given string. null in case of error
-     */
-    private URL urlBuilder(String i_Url) {
-        try {
-            return new URL(i_Url);
-        } catch (IOException e) {
-            System.err.println("OOPS! Could not convert given address to a legal URL address.\n" + e);
-            System.exit(1);
-            return null;
-        }
-    }
 
-    /**
-     * This function returns long file size for the given URL.
-     * @param i_Url
-     * @return the file size from the given URL
-     */
-    private long getFileSizeFromUrl(String i_Url) {
-        try {
-            URL url = new URL(i_Url);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
+    private long getFileSizeFromUrl() {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
             int response = connection.getResponseCode();
-            //TODO: 201 202...??????
-            if(response == 200) {
+
+            if(response / 100 == 2) {
                 return connection.getContentLength();
             }
+
             return 0;
 
         } catch (Exception e) {
@@ -107,12 +106,22 @@ public class DownloadManager {
 
     }
 
+    private URL createUrl(String i_url) {
+        try{
+            URL fileUrl = new URL(i_url);
+            return fileUrl;
+        } catch (Exception e) {
+            System.err.println(e);
+            System.exit(1);
+            return null;
+        }
+    }
 
-    private String createFileName(String i_Url) {
-        int fileNameIndex = i_Url.lastIndexOf('/');
+    private String getFileName(String i_url) {
+        int fileNameIndex = i_url.lastIndexOf('/');
         //check if this is a valid address
-        if (fileNameIndex > -1 && fileNameIndex < i_Url.length() - 1) {
-            String urlFileName = i_Url.substring(fileNameIndex + 1);
+        if (fileNameIndex > -1 && fileNameIndex < i_url.length() - 1) {
+            String urlFileName = i_url.substring(fileNameIndex + 1);
             return urlFileName;
         } else {
             //TODO: add error and exit?????
@@ -120,5 +129,27 @@ public class DownloadManager {
         }
     }
 
+
+
+    private List<Range> divideFileToRanges() {
+        // divide the file size into ranges for the thread - this is based on original file size
+        List<Range> threadRangeList = new ArrayList<>();
+        Range threadRange;
+        long startRange;
+        long endRange;
+        long rangeSize = this.fileSize / this.numOfThreads;
+        for (int i = 0; i < this.numOfThreads; i++) {
+            startRange = i * rangeSize;
+            endRange = startRange + rangeSize - 1;
+
+            //if the last thread has smaller range than the others
+            if (i == this.numOfThreads - 1) {
+                endRange = this.fileSize;
+            }
+            threadRange = new Range(startRange, endRange);
+            threadRangeList.add(threadRange);
+        }
+        return threadRangeList;
+    }
 
 }

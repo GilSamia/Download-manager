@@ -1,8 +1,4 @@
-package lab;
-
-// the HttpRangeGetter will get a range from the DownloadManager, open connection and
-// read the given range into the chunk data.
-//puts the chunk in the queue.
+package LabDm.src;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -11,79 +7,119 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
 public class HttpRangeGetter implements Runnable {
-    private final int chunkSize = 4096;  //1 chunk = 4KB
-    private final URL url;
-    private final Long start; // The beginning of this range
-    private final Long end; // The ending of this range
-    private final BlockingQueue<Chunk> blockingQueue;
-    private MetadataManager metadataManager;
+    private Metadata metadata;
+    private BlockingQueue blockingQueue;
+    private URL url;
+    private Range threadRange;
 
-    public HttpRangeGetter(URL i_Url, Long i_Start, Long i_End, BlockingQueue i_BlockingQueue, MetadataManager i_MetadataManager){
-        this.url = i_Url;
-        this.start = i_Start;
-        this.end = i_End;
-        this.blockingQueue = i_BlockingQueue;
-        this.metadataManager = i_MetadataManager;
-        
+    public HttpRangeGetter(URL i_url, Range i_range, Metadata i_metadata, BlockingQueue i_blockingQueue) {
+        this.metadata = i_metadata;
+        this.blockingQueue = i_blockingQueue;
+        this.url = i_url;
+        this.threadRange = i_range;
     }
-
-    public void rangeDownloader() {
+    
+    public static void justACheck() {
+    	System.out.println("All is good");
+    }
+    
+    
+    public void downloadRange() {
         try {
-            System.out.println("Before the connection. end = " + this.end);
+            long threadRangeStart = this.threadRange.getStart();
+            long threadRangeEnd = this.threadRange.getEnd();
+            System.out.println("downloading range" + threadRangeStart + "-" + threadRangeEnd); //TODO: print like in example
 
-        	HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
-            connection.setRequestProperty("Range", "bytes=" + this.start + "-" + this.end);
+            HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
+            connection.setRequestProperty("Range", "bytes=" + threadRangeStart + "-" + threadRangeEnd);
             connection.connect();
 
-            //TODO: check status 201 202...?
             int response = connection.getResponseCode();
-            System.out.println("response : " + response);
-            if (response >= 200 && response < 300) {
-
+            if(response / 100 == 2) {
                 InputStream inputStream = connection.getInputStream();
-        		List<Long> startRangeList = this.metadataManager.getStartRangeList();
-                
-        		for (int i = 0; i < startRangeList.size(); i++) {
 
-        			long startRange = startRangeList.get(i);
-        			//if the given list ranges matches the thread range then read the file
-        			if (startRange <= this.end && startRange >= this.start) {
+                int chunkSize = DownloadManager.chunkSize;
+                long bytesRead = 0;
+                long bytesToRead = threadRangeEnd - threadRangeStart + 1;
 
-                        long bytesRead = 0;
-                        long bytesToRead = chunkSize;
+               // while there are bytes left to read in this range
+                while (bytesRead < bytesToRead) {
+                    byte [] data = new byte[chunkSize];
+                    long seekPosition = threadRangeStart + bytesRead;
 
-        				//while there are bytes left to read                
-                        while (bytesRead < bytesToRead) {
-                            byte [] chunkData = new byte[chunkSize];
-                            long seek = this.start + bytesRead;
-                            int sizeRead = inputStream.read(chunkData); //read the data to chunkData and returns the size of data in bytes.
+                    //read the data to chunkData and returns the size of data in bytes.
+                    int sizeRead = inputStream.read(data);
 
-                            // this is the end of file
-                            if(sizeRead == -1) {
-                                break;
-                            }
-                            
-                            bytesRead += sizeRead;
-                            Chunk chunk = new Chunk(chunkData, sizeRead, seek, this.start);
-                            this.blockingQueue.put(chunk);
-                        }
-        			}
-        		}
+                    // this is the end of file
+                    if(sizeRead == -1) {
+                        break;
+                    }
 
-                inputStream.close();
-                connection.disconnect();
+                    bytesRead += sizeRead;
+                    DataChunk dataChunk = new DataChunk(data, sizeRead, seekPosition, this.threadRange);
+                    this.blockingQueue.put(dataChunk);
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+
+             //   List<Range> rangeList = this.metadata.getRangeList();
+
+//                for (int i = 0; i < rangeList.size(); i++) {
+//                    Range metadataRange = rangeList.get(i);
+//                    long metadataRangeStart = metadataRange.getStart();
+//
+//                    // if the range of this thread matches the ranges in metadata
+//                    if (metadataRangeStart >= threadRangeStart && metadataRangeStart <= threadRangeEnd) {
+//                        int chunkSize = DownloadManager.chunkSize;
+//                        long bytesRead = 0;
+//                        long bytesToRead = threadRangeEnd - metadataRangeStart + 1;
+//
+//                        //while there are bytes left to read in this range
+//                        while (bytesRead < bytesToRead) {
+//                            byte [] data = new byte[chunkSize];
+//                            long seekPosition = threadRangeStart + bytesRead;
+//                            //read the data to chunkData and returns the size of data in bytes.
+//                            int sizeRead = inputStream.read(data);
+//
+//                            // this is the end of file
+//                            if(sizeRead == -1) {
+//                                break;
+//                            }
+//
+//                            bytesRead += sizeRead;
+//                            DataChunk dataChunk = new DataChunk(data, sizeRead, seekPosition, this.threadRange);
+//                            this.blockingQueue.put(dataChunk);
+//                        }
+//                    }
+//
+//                }
+
+
             }
-            
-        } catch (Exception e){
+
+
+        } catch (Exception e) {
             System.err.println(e);
             System.exit(1);
         }
+
     }
 
 
+
     @Override
-    public void run(){
-    	this.rangeDownloader();
-    	System.out.println("HTTP Range Getter Runner");
+    public void run() {
+        this.downloadRange();
+
     }
 }
