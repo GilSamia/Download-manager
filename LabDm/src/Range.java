@@ -1,6 +1,8 @@
 package LabDm.src;
 
-public class Range {
+import java.io.Serializable;
+
+public class Range implements Serializable {
     private long start;
     private long end;
 

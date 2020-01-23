@@ -19,11 +19,7 @@ public class HttpRangeGetter implements Runnable {
         this.threadRange = i_range;
     }
     
-    public static void justACheck() {
-    	System.out.println("All is good");
-    }
-    
-    
+
     public void downloadRange() {
         try {
             long threadRangeStart = this.threadRange.getStart();

@@ -13,18 +13,20 @@ public class DownloadManager {
     private long fileSize;
     public static final int chunkSize = 1024 * 4; //1 chunk = 4kb
     private int numOfThreads;
+    private List<URL> urlList;
     private URL url;
     private String fileName;
     private List<Range> threadRangeList;
 
-    public DownloadManager(String i_Url, int i_NumOfThreads) {
+    public DownloadManager(List<URL> i_Url, int i_NumOfThreads) {
         this.numOfThreads = i_NumOfThreads;
-        this.url = createUrl(i_Url);
+        this.urlList = i_Url;
+        this.url = i_Url.get(0); //TODO:maybe delete
         this.fileSize = getFileSizeFromUrl();
-        this.fileName = getFileName(i_Url);
+        this.fileName = getFileName(i_Url.get(0).toString());
         this.threadRangeList = divideFileToRanges();
     }
-    
+
     protected void startDownload() {
         int threshold = 5 * this.chunkSize; //TODO: explain why we chose 5?? is it enough?
         int optimalNumOfThreads = (int) this.fileSize / threshold;
@@ -78,6 +80,13 @@ public class DownloadManager {
 
         fileWriterThread.start();
         for (int i = 0; i < this.threadRangeList.size(); i++) {
+            if (i < this.urlList.size()) {
+                this.url = this.urlList.get(i);
+            } else {
+                this.url = this.urlList.get(i % this.urlList.size());
+            }
+
+            System.out.println("open conn " + this.url);
             Runnable httpRangeGetter = new HttpRangeGetter(this.url, this.threadRangeList.get(i), metadata, blockingQueue);
             executor.execute(httpRangeGetter);
         }
@@ -106,22 +115,23 @@ public class DownloadManager {
 
     }
 
-    private URL createUrl(String i_url) {
-        try{
-            URL fileUrl = new URL(i_url);
-            return fileUrl;
-        } catch (Exception e) {
-            System.err.println(e);
-            System.exit(1);
-            return null;
-        }
-    }
+//    private URL createUrl(String i_url) {
+//        try{
+//            URL fileUrl = new URL(i_url);
+//            return fileUrl;
+//        } catch (Exception e) {
+//            System.err.println(e);
+//            System.exit(1);
+//            return null;
+//        }
+//    }
 
     private String getFileName(String i_url) {
         int fileNameIndex = i_url.lastIndexOf('/');
         //check if this is a valid address
         if (fileNameIndex > -1 && fileNameIndex < i_url.length() - 1) {
             String urlFileName = i_url.substring(fileNameIndex + 1);
+            System.out.println("file name" + urlFileName);
             return urlFileName;
         } else {
             //TODO: add error and exit?????

@@ -48,6 +48,7 @@ public class FileWriter implements Runnable {
             }
             if (this.fileSize == bytesWritten && percentage == 100) {
                 System.out.println("download succeeded! :) :) :) ^ - ^ ");
+                this.metadata.deleteMetadataFile();
             } else {
                 System.out.println("oooooopsi, not working tipsh'a");
             }

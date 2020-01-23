@@ -1,17 +1,13 @@
 package LabDm.src;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Metadata {
+public class Metadata implements Serializable {
     private List<Range> rangeList;
     private String fileName;
     private long bytesWritten;
@@ -38,12 +34,6 @@ public class Metadata {
             try {
                 //create the metadata file
                 metadataFile.createNewFile();
-
-                //create the temp file too
-                File tempMetadata = new File(i_fileName + ".metadata.temp");
-                if(!tempMetadata.exists()) {
-                    tempMetadata.createNewFile();
-                }
 
             } catch (Exception e) {
                 // TODO: error handling
@@ -134,6 +124,19 @@ public class Metadata {
             }
         }
         this.bytesWritten += i_chunk.getSize();
+        writeToMetadata();
+    }
+
+
+    protected void deleteMetadataFile() {
+        try {
+            File metadataFile = new File(this.fileName + ".metadata");
+            metadataFile.delete();
+        } catch (Exception e) {
+            System.err.println(
+                    "OOPS! Something went wrong with deleting your old metadata file.\nPlease try again later.");
+            System.exit(1);
+        }
     }
 
 

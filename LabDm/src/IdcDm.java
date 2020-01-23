@@ -1,5 +1,11 @@
 package LabDm.src;
 
+import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 public class IdcDm {
     /**
      * begin the download after accepting the user's args.
@@ -13,6 +19,7 @@ public class IdcDm {
             System.exit(1);
         }
         String url = args[0];
+        List<URL> urlList = createUrlList(url);
 
         if (args.length == 2) {
             numOfThreads = Integer.parseInt(args[1]);
@@ -22,8 +29,31 @@ public class IdcDm {
         if (numOfThreads > 1) {
             System.out.println(" using " + numOfThreads + " connections...");
         }
-        HttpRangeGetter.justACheck();
-        DownloadManager downloadManager = new DownloadManager(url, numOfThreads); //TODO: send to manager url list
+        DownloadManager downloadManager = new DownloadManager(urlList, numOfThreads);
         downloadManager.startDownload();
     }
+
+
+
+
+    private static List<URL> createUrlList(String i_list) {
+        List<URL> UrlList = new ArrayList<>();
+        URL curUrl;
+        try{
+            Scanner scanner = new Scanner(new File(i_list));
+            scanner.useDelimiter(System.lineSeparator());
+            while (scanner.hasNext()) {
+                curUrl = new URL(scanner.next());
+                System.out.println(curUrl);
+                UrlList.add(curUrl);
+            }
+        } catch (Exception e) {
+            System.err.println("ooops");
+            System.exit(1);
+        }
+
+        return UrlList;
+    }
+
+
 }
