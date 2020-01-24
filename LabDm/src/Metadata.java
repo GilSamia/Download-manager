@@ -56,6 +56,7 @@ public class Metadata implements Serializable {
 
             metadata = (Metadata) objectInputStream.readObject();
             objectInputStream.close();
+            fileInputStream.close();
             return metadata;
         } catch (Exception e) {
             System.err.println(e);
@@ -71,6 +72,8 @@ public class Metadata implements Serializable {
             FileOutputStream fileOutputStream = new FileOutputStream(tempPath);
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
             objectOutputStream.writeObject(this);
+            objectOutputStream.close();
+            fileOutputStream.close();
             renameTempMetadataFile();
 //            this.rangeCounter++;
         } catch (Exception e) {

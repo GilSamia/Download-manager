@@ -1,6 +1,7 @@
 package LabDm.src;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,17 @@ public class IdcDm {
             System.exit(1);
         }
         String url = args[0];
-        List<URL> urlList = createUrlList(url);
+        List<URL> urlList = new ArrayList<>();
+        if (url.startsWith("https://") || url.startsWith("http://")) {
+            try {
+                urlList.add(new URL(url));
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            urlList = createUrlList(url);
+        }
+
 
         if (args.length == 2) {
             numOfThreads = Integer.parseInt(args[1]);
