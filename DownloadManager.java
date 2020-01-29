@@ -21,7 +21,7 @@ public class DownloadManager {
     public DownloadManager(List<URL> i_Url, int i_NumOfThreads) {
         this.numOfThreads = i_NumOfThreads;
         this.urlList = i_Url;
-        this.url = i_Url.get(0); //TODO:maybe delete
+        this.url = i_Url.get(0);
         this.fileSize = getFileSizeFromUrl();
         this.fileName = getFileName(i_Url.get(0).toString());
         this.threadRangeList = divideFileToRanges();
@@ -34,7 +34,7 @@ public class DownloadManager {
      * This function is also in charge to resume download if it was interrupted.
      */
     protected void startDownload() {
-        int threshold = 5 * this.chunkSize; //TODO: explain why we chose 5?? is it enough?
+        int threshold = 5 * this.chunkSize; //threshold is a multiplication of the chunk size.
         int optimalNumOfThreads = (int) this.fileSize / threshold;
 
         //if the user asked for too many threads, change to optimal num
@@ -44,6 +44,7 @@ public class DownloadManager {
         BlockingQueue<DataChunk> blockingQueue = new LinkedBlockingQueue<>();
 
         // TODO: file size and num of threads might not be needed in metadata
+        //I think this is helpful... I let you decide..:)
         Metadata metadata = Metadata.getMetadata(this.fileName, this.fileSize, this.numOfThreads, this.threadRangeList);
         FileWriter fileWriter = new FileWriter(metadata, blockingQueue, this.fileSize);
         Thread fileWriterThread = new Thread(fileWriter);

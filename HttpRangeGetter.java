@@ -27,7 +27,7 @@ public class HttpRangeGetter implements Runnable {
         try {
             long threadRangeStart = this.threadRange.getStart();
             long threadRangeEnd = this.threadRange.getEnd();
-            System.out.println("start downloading range (" + threadRangeStart + "-" + threadRangeEnd + ") from: " + this.url);
+            System.out.println("start downloading range (" + threadRangeStart + "-" + threadRangeEnd + ") from:\n" + this.url);
 
             HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
             connection.setRequestProperty("Range", "bytes=" + threadRangeStart + "-" + threadRangeEnd);

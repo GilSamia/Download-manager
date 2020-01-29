@@ -163,7 +163,6 @@ public class Metadata implements Serializable {
      */
     protected void deleteMetadataFile() {
         try {
-            System.out.println("DELETING METADATA!!!!");
             File metadataFile = new File(this.fileName + ".metadata");
             metadataFile.delete();
         } catch (Exception e) {
