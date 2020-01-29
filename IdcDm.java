@@ -34,7 +34,6 @@ public class IdcDm {
         if (args.length == 2) {
             numOfThreads = Integer.parseInt(args[1]);
         }
-
         System.out.println("Downloading...");
         if (numOfThreads > 1) {
             System.out.println(" using " + numOfThreads + " connections...");

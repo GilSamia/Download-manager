@@ -85,7 +85,7 @@ public class DownloadManager {
         fileWriterThread.start();
         for (int i = 0; i < this.threadRangeList.size(); i++) {
             this.url = this.urlList.get(i % this.urlList.size());
-            System.out.println("open conn " + this.url);
+//            System.out.println("open conn " + this.url);
             Runnable httpRangeGetter = new HttpRangeGetter(this.url, this.threadRangeList.get(i), metadata, blockingQueue);
             executor.execute(httpRangeGetter);
         }

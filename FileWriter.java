@@ -35,7 +35,7 @@ public class FileWriter implements Runnable {
             int percentage = (int) (((double) bytesWritten / this.fileSize) * 100);
             int curPercentage = percentage;
 
-            while (this.fileSize != bytesWritten) {
+            while (this.fileSize != bytesWritten && percentage < 100) {
                 DataChunk chunk = (DataChunk) this.blockingQueue.take();
                 raf.seek(chunk.getSeek());
                 raf.write(chunk.getData(), 0, chunk.getSize());
@@ -44,15 +44,19 @@ public class FileWriter implements Runnable {
                 bytesWritten = this.metadata.getBytesWritten();
                 percentage =(int) (((double) bytesWritten / this.fileSize) * 100);
                 if(curPercentage != percentage) {
-                    System.out.println("Downloaded " + percentage + "%");
+                    if(percentage != 100) {
+                        System.out.println("Downloaded " + percentage + "%");
+                    }
                     curPercentage = percentage;
                 }
             }
-            if (this.fileSize == bytesWritten && percentage == 100) {
-                System.out.println("download succeeded!");
+            if (this.fileSize == bytesWritten || percentage == 100) {
+                System.out.println("Finished downloading");
                 this.metadata.deleteMetadataFile();
+                this.isFileCreated = true;
+                System.out.println("download succeeded!");
             } else {
-                System.out.println("OOPS! Something went wrong. Did not write all of the bytes!\n");
+                System.out.println("OOPS! Something went wrong. Did not write all of the bytes!");
             }
         } catch (Exception e) {
             System.err.println("OOPS! Something went wrong with writing the data to disk. Please try again later.\n" + e);

@@ -13,7 +13,7 @@ public class Metadata implements Serializable {
     private long bytesWritten;
     private int numOfThreads;
     private long fileSize;
-    public boolean isResumed;
+    public static boolean isResumed;
 
     public Metadata(String i_fileName, long i_fileSize, int i_numOfThreads, List<Range> i_threadRangeList){
         this.rangeList = i_threadRangeList;
@@ -55,7 +55,7 @@ public class Metadata implements Serializable {
                 //create the metadata file
                 metadataFile.createNewFile();
             } catch (Exception e) {
-                System.err.println("OOPS! Somethiing went wrong with creating the metadata file.\n" + e);
+                System.err.println("OOPS! Something went wrong with creating the metadata file.\n" + e);
             }
 
         //if the metadata exists
@@ -163,6 +163,7 @@ public class Metadata implements Serializable {
      */
     protected void deleteMetadataFile() {
         try {
+            System.out.println("DELETING METADATA!!!!");
             File metadataFile = new File(this.fileName + ".metadata");
             metadataFile.delete();
         } catch (Exception e) {
