@@ -1,4 +1,4 @@
-package lab;
+
 // the chunk holds the data read from the file, the size of that data, where in the file this data should be written,
 // and what was the start of that range
 

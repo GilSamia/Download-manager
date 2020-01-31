@@ -1,4 +1,3 @@
-package lab;
 
 import java.io.Serializable;
 

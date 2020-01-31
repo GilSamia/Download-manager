@@ -1,4 +1,3 @@
-package lab;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -54,34 +53,48 @@ public class DownloadManager {
 
         // if we are in resume, reCalc the ranges
         if(metadata.isResumed) {
-            long totalFileSize = 0;
+            System.out.println("resumed!");
+            metadataRangeList = metadata.getRangeList();
+           // long totalFileSize = 0;
+            long totalFileSize = this.fileSize - metadata.getBytesWritten();
+            System.out.println("total file size: "+totalFileSize);
+            System.out.println("bytes written from meta"+metadata.getBytesWritten());
             //calc the total size left to download
-            for (int i = 0; i < metadataRangeList.size(); i++) {
-                totalFileSize += metadataRangeList.get(i).getSize();
-            }
+//            for (int i = 0; i < metadataRangeList.size(); i++) {
+//                System.out.println("to add: "+metadataRangeList.get(i).getSize());
+//              //  totalFileSize += metadataRangeList.get(i).getSize();
+//                System.out.println("total: "+totalFileSize);
+//            }
 
             //size for each thread to download
             long sizeForThread = totalFileSize / this.numOfThreads;
             long curRangeSize;
-            List<Range> updatedRangeList = new ArrayList<>();
-
             Range newRange;
             Range metadataRange;
-            for (int i = 0; i < numOfThreads; i++) {
-                curRangeSize = sizeForThread;
-                for (int j = 0; j < metadataRangeList.size(); j++) {
-                    metadataRange = metadataRangeList.get(j);
-                    if(metadataRange.getSize() <= curRangeSize) {
-                        newRange = new Range(metadataRange.getStart(), metadataRange.getEnd());
-                        updatedRangeList.add(newRange);
+            List<Range> updatedRangeList = new ArrayList<>();
+
+            for (int i = 0; i < metadataRangeList.size(); i++) {
+                metadataRange = metadataRangeList.get(i);
+                curRangeSize = metadataRange.getSize();
+
+                while (curRangeSize > 0) {
+                    if(sizeForThread > curRangeSize) {
+                        newRange = new Range(metadataRange.getEnd() - curRangeSize + 1, metadataRange.getEnd());
+                    } else if(sizeForThread == curRangeSize){
+                        newRange = new Range(metadataRange.getEnd() - curRangeSize + 1, metadataRange.getEnd());
                     } else {
-                        newRange = new Range(metadataRange.getStart(), metadataRange.getStart() + curRangeSize);
+                        newRange = new Range(metadataRange.getEnd() - curRangeSize + 1, metadataRange.getEnd() - curRangeSize + sizeForThread);
                     }
-                    curRangeSize -= newRange.getSize();
+                    updatedRangeList.add(newRange);
+                    curRangeSize -= sizeForThread;
                 }
+
             }
+
             this.threadRangeList = updatedRangeList;
+
         }
+
 
         fileWriterThread.start();
         for (int i = 0; i < this.threadRangeList.size(); i++) {

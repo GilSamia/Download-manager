@@ -1,4 +1,4 @@
-package lab;
+
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;

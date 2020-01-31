@@ -1,4 +1,3 @@
-package lab;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -14,6 +13,7 @@ public class Metadata implements Serializable {
     private int numOfThreads;
     private long fileSize;
     public static boolean isResumed;
+    private long fileSizeLeftToRead;
 
     public Metadata(String i_fileName, long i_fileSize, int i_numOfThreads, List<Range> i_threadRangeList){
         this.rangeList = i_threadRangeList;
@@ -22,6 +22,7 @@ public class Metadata implements Serializable {
         this.fileName = i_fileName;
         this.numOfThreads = i_numOfThreads;
         this.isResumed = false;
+        this.fileSizeLeftToRead = i_fileSize;
     }
 
     public List<Range> getRangeList() {
@@ -139,14 +140,17 @@ public class Metadata implements Serializable {
             if(chunkStart >= metadataRangeStart && chunkEnd <= metadataRangeEnd) {
                 Range updatedRange = new Range(metadataRangeStart + i_chunk.getSize(), metadataRangeEnd);
 
-                if(chunkStart == metadataRangeStart) {
-                    this.rangeList.set(i, updatedRange);
-                } else {
+                if(chunkStart == metadataRangeStart && updatedRange.getSize() > 0) {
+                    this.rangeList.remove(i);
+                    this.rangeList.add(updatedRange);
+                    this.bytesWritten += i_chunk.getSize();
+                } else if (updatedRange.getSize() > 0) {
                     Range updatedRange1 = new Range(metadataRangeStart, chunkStart - 1);
                     Range updatedRange2 = new Range(chunkEnd + 1, metadataRangeEnd);
                     this.rangeList.remove(i);
                     this.rangeList.add(updatedRange1);
                     this.rangeList.add(updatedRange2);
+                    this.bytesWritten += i_chunk.getSize();
                 }
 
                 if (updatedRange.getSize() < 1) {
@@ -154,7 +158,10 @@ public class Metadata implements Serializable {
                 }
             }
         }
-        this.bytesWritten += i_chunk.getSize();
+
+//        this.fileSizeLeftToRead -= i_chunk.getSize();
+//        long totalFileSize = this.fileSize - this.bytesWritten;
+//        System.out.println(totalFileSize);
         writeToMetadata();
     }
 

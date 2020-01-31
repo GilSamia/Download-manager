@@ -1,4 +1,3 @@
-package lab;
 
 import java.io.File;
 import java.io.RandomAccessFile;
@@ -35,22 +34,26 @@ public class FileWriter implements Runnable {
             int percentage = (int) (((double) bytesWritten / this.fileSize) * 100);
             int curPercentage = percentage;
 
-            while (this.fileSize != bytesWritten && percentage < 100) {
+            while (this.fileSize > bytesWritten) {
                 DataChunk chunk = (DataChunk) this.blockingQueue.take();
                 raf.seek(chunk.getSeek());
                 raf.write(chunk.getData(), 0, chunk.getSize());
 
                 this.metadata.updateDownloadedRanges(chunk);
-                bytesWritten = this.metadata.getBytesWritten();
+                bytesWritten+=chunk.getSize();
+               // bytesWritten = this.metadata.getBytesWritten();
                 percentage =(int) (((double) bytesWritten / this.fileSize) * 100);
                 if(curPercentage != percentage) {
                     if(percentage != 100) {
+                        System.out.println("bytes written: "+bytesWritten);
+                        System.out.println("file size: "+this.fileSize);
                         System.out.println("Downloaded " + percentage + "%");
                     }
                     curPercentage = percentage;
                 }
             }
-            if (this.fileSize == bytesWritten || percentage == 100) {
+            System.out.println("at the end:"+metadata.getBytesWritten());
+            if (this.fileSize == bytesWritten && percentage == 100) {
                 System.out.println("Finished downloading");
                 this.metadata.deleteMetadataFile();
                 this.isFileCreated = true;
