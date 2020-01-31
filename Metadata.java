@@ -8,7 +8,6 @@ import java.util.List;
 
 public class Metadata implements Serializable {
     public  List<Range> rangeList;
-    private List<Range> rangeListCopy;
     private String fileName;
     private long bytesWritten;
     private int numOfThreads;
@@ -18,7 +17,6 @@ public class Metadata implements Serializable {
 
     public Metadata(String i_fileName, long i_fileSize, int i_numOfThreads, List<Range> i_threadRangeList){
         this.rangeList = i_threadRangeList;
-        this.rangeListCopy = copyRangeList();
         this.bytesWritten = 0;
         this.fileSize = i_fileSize;
         this.fileName = i_fileName;
@@ -27,15 +25,6 @@ public class Metadata implements Serializable {
 
     }
 
-    public List<Range> copyRangeList() {
-        List<Range> copyList = new ArrayList<>();
-        Range copyRange;
-        for (int i = 0; i < this.rangeList.size() ; i++) {
-            copyRange = new Range(this.rangeList.get(i).getStart(), this.rangeList.get(i).getEnd());
-            copyList.add(copyRange);
-        }
-        return copyList;
-    }
 
     public List<Range> getRangeList() {
         return this.rangeList;
@@ -136,6 +125,8 @@ public class Metadata implements Serializable {
         }
     }
 
+
+
     /**
      * This function updates the downloaded ranges after a chunk was written. it updates the range list with the new
      * range that we still need to read.
@@ -158,17 +149,14 @@ public class Metadata implements Serializable {
             Range updatedRange = new Range(metadataRangeStart + i_chunk.getSize(), metadataRangeEnd);
 
             if (chunkStart == metadataRangeStart && updatedRange.getSize() > 0) {
-              //  System.out.println("in the if");
                 this.rangeList.set(chunkRangeIndex, updatedRange);
                 this.bytesWritten += i_chunk.getSize();
-               // System.out.println("in " + this.bytesWritten);
-              //  System.out.println("in2 " + i_chunk.getSize());
             }
-
         }
         writeToMetadata();
-        System.out.println("metadata " + this.bytesWritten);
     }
+
+
 
     /**
      * This function deletes the metadata file after we are done using it.
@@ -183,27 +171,4 @@ public class Metadata implements Serializable {
             System.exit(1);
         }
     }
-
-//// is it still needed??
-//    private List<Range> initRangeList() {
-//        List<Range> rangeList = new ArrayList<>();
-//        Range range;
-//        long startRange;
-//        long endRange;
-//        long rangeSize = this.fileSize / this.numOfThreads;
-//        for (int i = 0; i < this.numOfThreads; i++) {
-//            startRange = i * rangeSize;
-//            endRange = startRange + rangeSize - 1;
-//
-//            //if the last thread has smaller range than the others
-//            if (i == this.numOfThreads - 1) {
-//                endRange = this.fileSize;
-//            }
-//
-//            range = new Range(startRange, endRange);
-//            rangeList.add(range);
-//        }
-//
-//        return rangeList;
-//    }
 }

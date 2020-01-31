@@ -53,12 +53,10 @@ public class DownloadManager {
 
         // if we are in resume, reCalc the ranges
         if(metadata.isResumed) {
-            System.out.println("resumed!");
+            //System.out.println("resumed!");
             metadataRangeList = metadata.rangeList;
-         //   System.out.println("bytes written from meta"+metadata.getBytesWritten());
             //calc the total size left to download
             long totalFileSize = this.fileSize - metadata.getBytesWritten();
-         //   System.out.println("total file size: "+totalFileSize);
 
             //size for each thread to download
             long sizeForThread = (long) Math.ceil(totalFileSize / this.numOfThreads);
@@ -72,9 +70,7 @@ public class DownloadManager {
                 curRangeSize = metadataRange.getSize();
 
                 while (curRangeSize > 0) {
-                    if(sizeForThread > curRangeSize) {
-                        newRange = new Range(metadataRange.getEnd() - curRangeSize + 1, metadataRange.getEnd());
-                    } else if(sizeForThread == curRangeSize){
+                    if(sizeForThread >= curRangeSize) {
                         newRange = new Range(metadataRange.getEnd() - curRangeSize + 1, metadataRange.getEnd());
                     } else {
                         newRange = new Range(metadataRange.getEnd() - curRangeSize + 1, metadataRange.getEnd() - curRangeSize + sizeForThread);
@@ -93,7 +89,6 @@ public class DownloadManager {
         fileWriterThread.start();
         for (int i = 0; i < this.threadRangeList.size(); i++) {
             this.url = this.urlList.get(i % this.urlList.size());
-//            System.out.println("open conn " + this.url);
             Runnable httpRangeGetter = new HttpRangeGetter(this.url, this.threadRangeList.get(i), metadata, blockingQueue, i);
             executor.execute(httpRangeGetter);
         }
