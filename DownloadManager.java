@@ -54,20 +54,14 @@ public class DownloadManager {
         // if we are in resume, reCalc the ranges
         if(metadata.isResumed) {
             System.out.println("resumed!");
-            metadataRangeList = metadata.getRangeList();
-           // long totalFileSize = 0;
-            long totalFileSize = this.fileSize - metadata.getBytesWritten();
-            System.out.println("total file size: "+totalFileSize);
-            System.out.println("bytes written from meta"+metadata.getBytesWritten());
+            metadataRangeList = metadata.rangeList;
+         //   System.out.println("bytes written from meta"+metadata.getBytesWritten());
             //calc the total size left to download
-//            for (int i = 0; i < metadataRangeList.size(); i++) {
-//                System.out.println("to add: "+metadataRangeList.get(i).getSize());
-//              //  totalFileSize += metadataRangeList.get(i).getSize();
-//                System.out.println("total: "+totalFileSize);
-//            }
+            long totalFileSize = this.fileSize - metadata.getBytesWritten();
+         //   System.out.println("total file size: "+totalFileSize);
 
             //size for each thread to download
-            long sizeForThread = totalFileSize / this.numOfThreads;
+            long sizeForThread = (long) Math.ceil(totalFileSize / this.numOfThreads);
             long curRangeSize;
             Range newRange;
             Range metadataRange;
@@ -95,12 +89,12 @@ public class DownloadManager {
 
         }
 
-
+        metadata.setRangeList(this.threadRangeList);
         fileWriterThread.start();
         for (int i = 0; i < this.threadRangeList.size(); i++) {
             this.url = this.urlList.get(i % this.urlList.size());
 //            System.out.println("open conn " + this.url);
-            Runnable httpRangeGetter = new HttpRangeGetter(this.url, this.threadRangeList.get(i), metadata, blockingQueue);
+            Runnable httpRangeGetter = new HttpRangeGetter(this.url, this.threadRangeList.get(i), metadata, blockingQueue, i);
             executor.execute(httpRangeGetter);
         }
         executor.shutdown();

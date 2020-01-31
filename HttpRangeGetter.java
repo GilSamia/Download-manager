@@ -11,12 +11,14 @@ public class HttpRangeGetter implements Runnable {
     private BlockingQueue blockingQueue;
     private URL url;
     private Range threadRange;
+    private int rangeIndex;
 
-    public HttpRangeGetter(URL i_url, Range i_range, Metadata i_metadata, BlockingQueue i_blockingQueue) {
+    public HttpRangeGetter(URL i_url, Range i_range, Metadata i_metadata, BlockingQueue i_blockingQueue, int i_rangeIndex) {
         this.metadata = i_metadata;
         this.blockingQueue = i_blockingQueue;
         this.url = i_url;
         this.threadRange = i_range;
+        this.rangeIndex = i_rangeIndex;
     }
 
     /**
@@ -56,7 +58,7 @@ public class HttpRangeGetter implements Runnable {
                         break;
                     }
                     bytesRead += sizeRead;
-                    DataChunk dataChunk = new DataChunk(data, sizeRead, seekPosition, this.threadRange);
+                    DataChunk dataChunk = new DataChunk(data, sizeRead, seekPosition, this.threadRange, this.rangeIndex);
                     this.blockingQueue.put(dataChunk);
                 }
             }

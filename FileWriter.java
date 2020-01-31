@@ -8,12 +8,14 @@ public class FileWriter implements Runnable {
     private BlockingQueue blockingQueue;
     private boolean isFileCreated;
     private long fileSize;
+    private long bytesWritten;
 
     public FileWriter(Metadata i_metadata, BlockingQueue i_blockingQueue, long i_fileSize) {
         this.metadata = i_metadata;
         this.blockingQueue = i_blockingQueue;
         this.isFileCreated = false;
         this.fileSize = i_fileSize;
+        this.bytesWritten = i_metadata.getBytesWritten();
     }
 
     /**
@@ -30,29 +32,33 @@ public class FileWriter implements Runnable {
             File file = new File(fileName);
             RandomAccessFile raf = new RandomAccessFile(file, "rw");
 
-            long bytesWritten = this.metadata.getBytesWritten();
-            int percentage = (int) (((double) bytesWritten / this.fileSize) * 100);
+            //long bytesWritten = this.metadata.getBytesWritten();
+            int percentage = (int) (((double) this.bytesWritten / this.fileSize) * 100);
             int curPercentage = percentage;
 
-            while (this.fileSize > bytesWritten) {
+            while (this.fileSize > this.bytesWritten) {
                 DataChunk chunk = (DataChunk) this.blockingQueue.take();
                 raf.seek(chunk.getSeek());
                 raf.write(chunk.getData(), 0, chunk.getSize());
-
+               // System.out.println("before up");
                 this.metadata.updateDownloadedRanges(chunk);
-                bytesWritten+=chunk.getSize();
+              //  System.out.println("after up");
+                this.bytesWritten+=chunk.getSize();
                // bytesWritten = this.metadata.getBytesWritten();
-                percentage =(int) (((double) bytesWritten / this.fileSize) * 100);
+               // System.out.println("bytes written: " + this.bytesWritten);
+                //System.out.println("file size: "+this.fileSize);
+                percentage =(int) (((double) this.bytesWritten / this.fileSize) * 100);
+
                 if(curPercentage != percentage) {
-                    if(percentage != 100) {
-                        System.out.println("bytes written: "+bytesWritten);
-                        System.out.println("file size: "+this.fileSize);
-                        System.out.println("Downloaded " + percentage + "%");
-                    }
+                    System.out.println("downloaded "+ percentage + "%");
+//                    if(percentage != 100) {
+//
+//                        System.out.println("Downloaded " + percentage + "%");
+//                    }
                     curPercentage = percentage;
                 }
             }
-            System.out.println("at the end:"+metadata.getBytesWritten());
+            System.out.println("at the end:"+this.bytesWritten);
             if (this.fileSize == bytesWritten && percentage == 100) {
                 System.out.println("Finished downloading");
                 this.metadata.deleteMetadataFile();

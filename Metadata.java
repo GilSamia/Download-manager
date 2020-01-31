@@ -7,22 +7,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Metadata implements Serializable {
-    private List<Range> rangeList;
+    public  List<Range> rangeList;
+    private List<Range> rangeListCopy;
     private String fileName;
     private long bytesWritten;
     private int numOfThreads;
     private long fileSize;
     public static boolean isResumed;
-    private long fileSizeLeftToRead;
+
 
     public Metadata(String i_fileName, long i_fileSize, int i_numOfThreads, List<Range> i_threadRangeList){
         this.rangeList = i_threadRangeList;
+        this.rangeListCopy = copyRangeList();
         this.bytesWritten = 0;
         this.fileSize = i_fileSize;
         this.fileName = i_fileName;
         this.numOfThreads = i_numOfThreads;
         this.isResumed = false;
-        this.fileSizeLeftToRead = i_fileSize;
+
+    }
+
+    public List<Range> copyRangeList() {
+        List<Range> copyList = new ArrayList<>();
+        Range copyRange;
+        for (int i = 0; i < this.rangeList.size() ; i++) {
+            copyRange = new Range(this.rangeList.get(i).getStart(), this.rangeList.get(i).getEnd());
+            copyList.add(copyRange);
+        }
+        return copyList;
     }
 
     public List<Range> getRangeList() {
@@ -66,6 +78,10 @@ public class Metadata implements Serializable {
         }
 
         return metadata;
+    }
+
+    public void setRangeList(List<Range> i_threadRangeList) {
+        this.rangeList = i_threadRangeList;
     }
 
     /**
@@ -126,43 +142,32 @@ public class Metadata implements Serializable {
      * @param i_chunk
      */
     protected void updateDownloadedRanges(DataChunk i_chunk) {
+        int chunkRangeIndex = i_chunk.getRangeIndex();
+
         Range metadataRange;
         Range chunkRange = i_chunk.getRange();
-        long chunkStart = chunkRange.getStart();
-        long chunkEnd = chunkRange.getEnd();
+        long chunkStart = i_chunk.getSeek();
+        long chunkEnd = chunkStart + i_chunk.getSize() - 1;
         long metadataRangeStart;
         long metadataRangeEnd;
-        for (int i = 0; i < this.rangeList.size(); i++) {
-            metadataRange = this.rangeList.get(i);
-            metadataRangeStart = metadataRange.getStart();
-            metadataRangeEnd = metadataRange.getEnd();
 
-            if(chunkStart >= metadataRangeStart && chunkEnd <= metadataRangeEnd) {
-                Range updatedRange = new Range(metadataRangeStart + i_chunk.getSize(), metadataRangeEnd);
+        metadataRange = this.rangeList.get(chunkRangeIndex);
+        metadataRangeStart = metadataRange.getStart();
+        metadataRangeEnd = metadataRange.getEnd();
+        if (chunkStart >= metadataRangeStart && chunkEnd <= metadataRangeEnd) {
+            Range updatedRange = new Range(metadataRangeStart + i_chunk.getSize(), metadataRangeEnd);
 
-                if(chunkStart == metadataRangeStart && updatedRange.getSize() > 0) {
-                    this.rangeList.remove(i);
-                    this.rangeList.add(updatedRange);
-                    this.bytesWritten += i_chunk.getSize();
-                } else if (updatedRange.getSize() > 0) {
-                    Range updatedRange1 = new Range(metadataRangeStart, chunkStart - 1);
-                    Range updatedRange2 = new Range(chunkEnd + 1, metadataRangeEnd);
-                    this.rangeList.remove(i);
-                    this.rangeList.add(updatedRange1);
-                    this.rangeList.add(updatedRange2);
-                    this.bytesWritten += i_chunk.getSize();
-                }
-
-                if (updatedRange.getSize() < 1) {
-                    this.rangeList.remove(i);
-                }
+            if (chunkStart == metadataRangeStart && updatedRange.getSize() > 0) {
+              //  System.out.println("in the if");
+                this.rangeList.set(chunkRangeIndex, updatedRange);
+                this.bytesWritten += i_chunk.getSize();
+               // System.out.println("in " + this.bytesWritten);
+              //  System.out.println("in2 " + i_chunk.getSize());
             }
-        }
 
-//        this.fileSizeLeftToRead -= i_chunk.getSize();
-//        long totalFileSize = this.fileSize - this.bytesWritten;
-//        System.out.println(totalFileSize);
+        }
         writeToMetadata();
+        System.out.println("metadata " + this.bytesWritten);
     }
 
     /**
