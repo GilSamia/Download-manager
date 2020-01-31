@@ -1,16 +1,16 @@
-
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
+//import java.util.concurrent.BlockingQueue;
+//import java.util.concurrent.ExecutorService;
+//import java.util.concurrent.Executors;
+//import java.util.concurrent.LinkedBlockingQueue;
 
 public class DownloadManager {
     private long fileSize;
-    public static final int chunkSize = 1024 * 4; //1 chunk = 4kb
+    public static final int chunkSize = 1024 * 4; //1 chunk = 4kb which is common block size.
     private int numOfThreads;
     private List<URL> urlList;
     private URL url;
@@ -28,8 +28,7 @@ public class DownloadManager {
 
     /**
      * this function manages the downloading. is calculates a optimal number of threads as a function of chunk size
-     * and creates threads accordingly. The function creates blocking queue, metadata file and a file writer..
-     *
+     * and creates threads accordingly. The function creates blocking queue, metadata file and a file writer.
      * This function is also in charge to resume download if it was interrupted.
      */
     protected void startDownload() {
@@ -42,8 +41,6 @@ public class DownloadManager {
         }
         BlockingQueue<DataChunk> blockingQueue = new LinkedBlockingQueue<>();
 
-        // TODO: file size and num of threads might not be needed in metadata
-        //I think this is helpful... I let you decide..:)
         Metadata metadata = Metadata.getMetadata(this.fileName, this.fileSize, this.numOfThreads, this.threadRangeList);
         FileWriter fileWriter = new FileWriter(metadata, blockingQueue, this.fileSize);
         Thread fileWriterThread = new Thread(fileWriter);
@@ -53,9 +50,7 @@ public class DownloadManager {
 
         // if we are in resume, reCalc the ranges
         if(metadata.isResumed) {
-            //System.out.println("resumed!");
             metadataRangeList = metadata.rangeList;
-            //calc the total size left to download
             long totalFileSize = this.fileSize - metadata.getBytesWritten();
 
             //size for each thread to download
@@ -78,11 +73,8 @@ public class DownloadManager {
                     updatedRangeList.add(newRange);
                     curRangeSize -= sizeForThread;
                 }
-
             }
-
             this.threadRangeList = updatedRangeList;
-
         }
 
         metadata.setRangeList(this.threadRangeList);
@@ -125,29 +117,31 @@ public class DownloadManager {
     private String getFileName(String i_url) {
         String urlFileName = null;
         int fileNameIndex = i_url.lastIndexOf('/');
+
         //check if this is a valid address
         if (fileNameIndex > -1 && fileNameIndex < i_url.length() - 1) {
             urlFileName = i_url.substring(fileNameIndex + 1);
             System.out.println("file name" + urlFileName);
-            return urlFileName;
         } else {
             System.err.println("OOPS! Could not create file name from the given URL.\n");
             System.exit(1);
-            return urlFileName;
         }
+        return urlFileName;
     }
 
     /**
-     * This function devides the file into ranges. each thread will get a range to download.
+     * This function divides the file into ranges. each thread will get a range to download.
      * @return threadRangeList
      */
     private List<Range> divideFileToRanges() {
-        // divide the file size into ranges for the thread - this is based on original file size
-        List<Range> threadRangeList = new ArrayList<>();
         Range threadRange;
         long startRange;
         long endRange;
         long rangeSize = this.fileSize / this.numOfThreads;
+
+        // divide the file size into ranges for the thread - this is based on original file size
+        List<Range> threadRangeList = new ArrayList<>();
+
         for (int i = 0; i < this.numOfThreads; i++) {
             startRange = i * rangeSize;
             endRange = startRange + rangeSize - 1;

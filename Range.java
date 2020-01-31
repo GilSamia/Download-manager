@@ -1,4 +1,3 @@
-
 import java.io.Serializable;
 
 public class Range implements Serializable {
@@ -18,5 +17,6 @@ public class Range implements Serializable {
         return this.end;
     }
 
+    //size of the whole range.
     public long getSize() {return this.end - this.start + 1;}
 }

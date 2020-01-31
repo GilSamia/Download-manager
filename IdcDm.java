@@ -1,5 +1,3 @@
-
-
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -44,7 +42,7 @@ public class IdcDm {
 
     /**
      * creates url list from the given file using scanner.
-     * @param i_list string of the list from the file
+     * @param i_list string of the list from the file.
      * @return list of URLs.
      */
     private static List<URL> createUrlList(String i_list) {

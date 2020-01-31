@@ -1,4 +1,3 @@
-
 // the chunk holds the data read from the file, the size of that data, where in the file this data should be written,
 // and what was the start of that range
 
@@ -9,12 +8,12 @@ public class DataChunk {
     private Range range;
     private int rangeIndex;
 
-    public DataChunk(byte[] i_Data, int i_Size, long i_SeekPos, Range i_range, int i_rangeIndex) {
+    public DataChunk(byte[] i_Data, int i_Size, long i_SeekPos, Range i_Range, int i_RangeIndex) {
         this.data = i_Data;
         this.size = i_Size;
         this.seekPosition = i_SeekPos;
-        this.range = i_range;
-        this.rangeIndex = i_rangeIndex;
+        this.range = i_Range;
+        this.rangeIndex = i_RangeIndex;
     }
 
     public byte[] getData() {

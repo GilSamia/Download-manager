@@ -1,9 +1,7 @@
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Metadata implements Serializable {
@@ -14,7 +12,6 @@ public class Metadata implements Serializable {
     private long fileSize;
     public static boolean isResumed;
 
-
     public Metadata(String i_fileName, long i_fileSize, int i_numOfThreads, List<Range> i_threadRangeList){
         this.rangeList = i_threadRangeList;
         this.bytesWritten = 0;
@@ -22,9 +19,7 @@ public class Metadata implements Serializable {
         this.fileName = i_fileName;
         this.numOfThreads = i_numOfThreads;
         this.isResumed = false;
-
     }
-
 
     public List<Range> getRangeList() {
         return this.rangeList;
@@ -125,8 +120,6 @@ public class Metadata implements Serializable {
         }
     }
 
-
-
     /**
      * This function updates the downloaded ranges after a chunk was written. it updates the range list with the new
      * range that we still need to read.
@@ -155,8 +148,6 @@ public class Metadata implements Serializable {
         }
         writeToMetadata();
     }
-
-
 
     /**
      * This function deletes the metadata file after we are done using it.
