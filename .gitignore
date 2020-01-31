@@ -1,6 +1,4 @@
-.production/
 .idea/
-.out/
 *.iml
 .iso.list
 .DS_Store
