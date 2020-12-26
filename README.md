@@ -1,7 +1,6 @@
 # Download-manager
 
-Resume is working!!
-
-
-There is a bug:
-When we open *N* threads, I see in the nslookup that *N+1* TCP connections are opened.
+This is a download manager application that supports the following actions:
+- multi-thread download
+- pause download
+- resume download (will continue to download from the resuming point.
